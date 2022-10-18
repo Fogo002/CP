@@ -3,7 +3,7 @@ BIN = bin/
 SRC = src/
 INCLUDES = include/
 EXEC = k_means
-CFLAGS = -O2
+CFLAGS = -O3 -g -fno-omit-frame-pointer -Wvector-operation-performance -floop-nest-optimize -ftree-parallelize-loops=4
 .DEFAULT_GOAL = k_means
 
 k_means: $(SRC)k_means.c $(BIN)utils.o
@@ -17,3 +17,6 @@ clean:
 
 run:
 	./$(BIN)$(EXEC)
+
+time:
+	time ./$(BIN)$(EXEC)
