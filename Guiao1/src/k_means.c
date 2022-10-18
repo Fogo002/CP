@@ -106,15 +106,17 @@ int main(){
 
     
     int end = 0;
-    int iteracoes = 0;
+    int iteracoes = -1;
     while(end == 0){
-        printf("Iteração nº %d\n",iteracoes);
+        //printf("Iteração nº %d\n",iteracoes);
         end = calculate_centroid(&pontos_x,&pontos_y,&old_centroid_x,&old_centroid_y,&cluster_atribution,&centroids_x,&centroids_y,&cluster_size);
         cluster_distrib(&pontos_x,&pontos_y,&old_centroid_x,&old_centroid_y,&cluster_atribution,&centroids_x,&centroids_y,&cluster_size);
         iteracoes++;
     }
+    printf("N = %d, K = %d\n",N,K);
     for(int i = 0; i < K; i++) {
-        printf("Cluster %d :%f , %f \nCentroide: %f %f\nSize: %d\n\n",i,old_centroid_x[i],old_centroid_y[i],centroids_x[i],centroids_y[i],cluster_size[i]); 
+        printf("Center: (%0.3f, %0.3f) : Size: %d\n",centroids_x[i],centroids_y[i],cluster_size[i]); 
     }
+    printf("Iterations: %d\n",iteracoes);
     return 0;
 }
