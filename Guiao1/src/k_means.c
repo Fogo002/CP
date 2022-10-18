@@ -7,19 +7,19 @@
 
 void cluster_distrib(float** pontos,float** old_centroid,int** cluster_atribution,float** centroids,int** cluster_size) {
 
-    int cluster_atual,k=0,clust;
+    int cluster_atual,k=0,clust,k_size=K*2,n_size = N*2;
     float min_dist,tmp;
     float x1,x2,y1,y2;
-
+    
     for(int i = 0; i < K; i++){
         (*cluster_size)[i] = 0.0;
     }
 
-    for(int i = 0; i < N*2; i+=2) {
+    for(int i = 0; i < n_size; i+=2) {
         cluster_atual=0;
         min_dist = 2;
         clust=0;
-        for(int j = 0; j < K*2 ; j+=2){
+        for(int j = 0; j < k_size ; j+=2){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
             x2 = (*pontos)[i];
