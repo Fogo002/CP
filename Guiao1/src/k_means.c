@@ -59,10 +59,8 @@ void inicializa(float** pontos,float** old_centroid,int** cluster_atribution,flo
         (*pontos)[i+1] = (float) rand() / RAND_MAX;
     }
     for(int i = 0; i < K*2; i+=2) {
-        (*centroids)[i] = (*pontos)[i];
-        (*centroids)[i+1] = (*pontos)[i+1];
-        //printf("Centroids iniciais: %f, %f\n",(*centroids)[i],(*centroids)[i+1]);
-
+        (*centroids)[i] = (*pontos)[i];     //Centroid ponto x
+        (*centroids)[i+1] = (*pontos)[i+1]; //Centroid ponto y
         (*cluster_size)[k] = 0;
         k++;
 
@@ -107,13 +105,13 @@ void k_means(float** pontos,float** old_centroid,int** cluster_atribution,float*
     int iteracoes = -1;
     while(end == 0){
         //printf("Iteração nº %d\n",iteracoes);
-        end = calculate_centroid(&pontos,&old_centroid,&cluster_atribution,&centroids,&cluster_size);
-        cluster_distrib(&pontos,&old_centroid,&cluster_atribution,&centroids,&cluster_size);
+        end = calculate_centroid(&(*pontos),&(*old_centroid),&(*cluster_atribution),&(*centroids),&(*cluster_size));
+        cluster_distrib(&(*pontos),&(*old_centroid),&(*cluster_atribution),&(*centroids),&(*cluster_size));
         iteracoes++;
     }
     printf("N = %d, K = %d\n",N,K);
     for(int i = 0; i < K; i++) {
-        printf("Center: (%0.3f, %0.3f) : Size: %d\n",centroids[i],centroids[i],cluster_size[i]); 
+        printf("Center: (%0.3f, %0.3f) : Size: %d\n",(*centroids)[i],(*centroids)[i],(*cluster_size)[i]); 
     }
     printf("Iterations: %d\n",iteracoes);
 }
@@ -126,7 +124,7 @@ int main(){
     float* centroids;         //Array de tamnho  N*2 com x,y em sequencia de cada centroid atual
 
     inicializa(&pontos,&old_centroid,&cluster_atribution,&centroids,&cluster_size);
-    k_means(&(*pontos),&(*old_centroid),&(*cluster_atribution),&(*centroids),&(*cluster_size));
+    k_means(&pontos,&old_centroid,&cluster_atribution,&centroids,&cluster_size);
     
     return 0;
 }
