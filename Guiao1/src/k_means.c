@@ -25,6 +25,7 @@ void cluster_distrib(float** pontos,float** old_centroid,int** cluster_atributio
             x2 = (*pontos)[i];
             y2 = (*pontos)[i+1];
             tmp = euclidean_distance(x1,y1,x2,y2);
+            //tmp = sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
 
             if(tmp < min_dist){
                 min_dist = tmp;
