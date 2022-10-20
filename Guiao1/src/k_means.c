@@ -26,7 +26,7 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
             y1 = (*centroids)[j+1];
 
             tmp = euclidean_distance(x1,y1,x2,y2);
-            //tmp = sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
+
 
             if(tmp < min_dist){
                 min_dist = tmp;
@@ -52,7 +52,7 @@ void inicializa(float** pontos,int** cluster_atribution,float** centroids,int** 
     *pontos = malloc(N*2*sizeof(float));
     *cluster_atribution = malloc(N*sizeof(int));
     *cluster_size= malloc(K*sizeof(int));
-    *centroids = malloc(K*2*2*sizeof(float));
+    *centroids = malloc(K*4*sizeof(float));
 
 
     srand(10);
@@ -126,7 +126,7 @@ int main(){
     float* pontos;            //Array de tamanho N*2 com x,y em sequencia de cada ponto
     int* cluster_atribution;  //Array de tamanho N   index de cada ponto para o seu cluster
     int* cluster_size;        //Array de tamnho  K   tamanho de cada cluster
-    float* centroids;         //Array de tamnho  K*2 com x,y,old_x,olf_y em sequencia de cada centroid atual e do centroid antigo
+    float* centroids;         //Array de tamnho  K*2*2 com x,y,old_x,olf_y em sequencia de cada centroid atual e do centroid antigo
 
     inicializa(&pontos,&cluster_atribution,&centroids,&cluster_size);
     k_means(&pontos,&cluster_atribution,&centroids,&cluster_size);
