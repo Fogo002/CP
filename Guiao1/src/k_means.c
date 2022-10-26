@@ -71,8 +71,8 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         cluster_atual=0;
         min_dist = 2;
         clust=0;
-        x3 = (*pontos)[i+2];
-        y3 = (*pontos)[i+3];
+        x3 = (*pontos)[i];
+        y3 = (*pontos)[i+1];
         for(int j = 0; j < k_size ; j+=4){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
