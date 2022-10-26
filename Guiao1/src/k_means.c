@@ -1,6 +1,6 @@
 #include "../include/k_means.h"
 
-#define N 1000000
+#define N 10000000
 #define K 4
 
 
@@ -11,15 +11,15 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
 
     int cluster_atual,k=0,clust,k_size=K*4,n_size = N*2;
     float min_dist,tmp;
-    float x1,x2,y1,y2,x3,y3;
+    float x1,x2,y1,y2,x3,y3,x4,y4;
     
     for(int i = 0; i < K; i++){
         (*cluster_size)[i] = 0.0;
     }
     //A cada ponto verifica qual o centroid mais próximo e atualiza o cluster_size 
-    //do cluster mais próximo e o cluster_distrib para conter o novo index desse ponto , com nivel 2 de unroll
+    //do cluster mais próximo e o cluster_distrib para conter o novo index desse ponto , com nivel 3 de unrolls
     int i;
-    for(i = 0; i < n_size; i+=4) {
+    for(i = 0; i < n_size; i+=6) {
         cluster_atual=0;
         min_dist = 2;
         clust=0;
@@ -63,16 +63,38 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         (*cluster_atribution)[k] = cluster_atual;
         (*cluster_size)[cluster_atual]++;
         k++;
-        
-    }
-
-    if(i < n_size){
 
         cluster_atual=0;
         min_dist = 2;
         clust=0;
-        x3 = (*pontos)[i+2];
-        y3 = (*pontos)[i+3];
+        x4 = (*pontos)[i+4];
+        y4 = (*pontos)[i+5];
+        for(int j = 0; j < k_size ; j+=4){
+            x1 = (*centroids)[j];
+            y1 = (*centroids)[j+1];
+
+            tmp = euclidean_distance(x1,y1,x4,y4);
+
+
+            if(tmp < min_dist){
+                min_dist = tmp;
+                cluster_atual = clust;
+            }
+            clust++;
+        }
+        (*cluster_atribution)[k] = cluster_atual;
+        (*cluster_size)[cluster_atual]++;
+        k++;
+        
+    }
+
+    while(i < n_size){
+
+        cluster_atual=0;
+        min_dist = 2;
+        clust=0;
+        x3 = (*pontos)[i];
+        y3 = (*pontos)[i+1];
         for(int j = 0; j < k_size ; j+=4){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
@@ -86,6 +108,7 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
             }
             clust++;
         }
+        i+=2;
     }
 }
 
