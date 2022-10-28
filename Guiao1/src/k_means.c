@@ -19,7 +19,7 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
     //A cada ponto verifica qual o centroid mais próximo e atualiza o cluster_size 
     //do cluster mais próximo e o cluster_distrib para conter o novo index desse ponto , com nivel 2 de unrolls
     int i;
-    for(i = 0; i < n_size; i+=4) {
+    for(i = 0; i < n_size-2; i+=4) {
         cluster_atual=0;
         min_dist = 2;
         clust=0;
@@ -66,12 +66,15 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         (*cluster_size)[cluster_atual]++;
         k++;
     }
+    
 
+    
     if(i < n_size){
 
         cluster_atual=0;
         min_dist = 2;
         clust=0;
+
         x3 = (*pontos)[i];
         y3 = (*pontos)[i+1];
         for(int j = 0; j < k_size ; j+=4){
