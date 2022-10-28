@@ -25,6 +25,10 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         clust=0;
         x2 = (*pontos)[i];
         y2 = (*pontos)[i+1];
+        x3 = (*pontos)[i+2];
+        y3 = (*pontos)[i+3];
+        x4 = (*pontos)[i+4];
+        y4 = (*pontos)[i+5];
         for(int j = 0; j < k_size ; j+=4){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
@@ -45,8 +49,7 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         cluster_atual=0;
         min_dist = 2;
         clust=0;
-        x3 = (*pontos)[i+2];
-        y3 = (*pontos)[i+3];
+
         for(int j = 0; j < k_size ; j+=4){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
@@ -67,8 +70,7 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         cluster_atual=0;
         min_dist = 2;
         clust=0;
-        x4 = (*pontos)[i+4];
-        y4 = (*pontos)[i+5];
+
         for(int j = 0; j < k_size ; j+=4){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
