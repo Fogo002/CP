@@ -13,11 +13,16 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
     float min_dist,tmp;
     float x1,x2,y1,y2,x3,y3;
     
+    // area de multithread  !!!!!!
     for(int i = 0; i < K; i++){
         (*cluster_size)[i] = 0.0;
     }
+    // area de multithread  !!!!!!
+
     //A cada ponto verifica qual o centroid mais próximo e atualiza o cluster_size 
     //do cluster mais próximo e o cluster_distrib para conter o novo index desse ponto , com nivel 2 de unrolls
+
+    // area de multithread  !!!!!! ???
     int i;
     for(i = 0; i < n_size-2; i+=4) {
         cluster_atual=0;
@@ -28,6 +33,7 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         x3 = (*pontos)[i+2];
         y3 = (*pontos)[i+3];
 
+        // area de multithread  !!!!!! ???
         for(int j = 0; j < k_size ; j+=4){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
@@ -41,6 +47,8 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
             }
             clust++;
         }
+        // area de multithread  !!!!!! ???
+
         (*cluster_atribution)[k] = cluster_atual;
         (*cluster_size)[cluster_atual]++;
         k++;
@@ -49,6 +57,7 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
         min_dist = 2;
         clust=0;
 
+        // area de multithread  !!!!!! ???
         for(int j = 0; j < k_size ; j+=4){
             x1 = (*centroids)[j];
             y1 = (*centroids)[j+1];
@@ -62,15 +71,17 @@ void cluster_distrib(float** pontos,int** cluster_atribution,float** centroids,i
             }
             clust++;
         }
+        // area de multithread  !!!!!! ???
+
         (*cluster_atribution)[k] = cluster_atual;
         (*cluster_size)[cluster_atual]++;
         k++;
     }
-    
 
+    // area de multithread  !!!!!! ???
+    
     
     if(i < n_size){
-
         cluster_atual=0;
         min_dist = 2;
         clust=0;
@@ -108,10 +119,14 @@ void inicializa(float** pontos,int** cluster_atribution,float** centroids,int** 
 
 
     srand(10);
+
+    // area de multithread  !!!!!! ???
     for(int i = 0; i < N*2; i+=2) {
         (*pontos)[i] = (float) rand() / RAND_MAX;
         (*pontos)[i+1] = (float) rand() / RAND_MAX;
     }
+    // area de multithread  !!!!!! ???
+    
     for(int i = 0; i < K*2*2; i+=2) {
         (*centroids)[i+i] = (*pontos)[i];     //Centroid ponto x
         (*centroids)[i+i+1] = (*pontos)[i+1]; //Centroid ponto y
@@ -138,6 +153,8 @@ int calculate_centroid(float** pontos,int** cluster_atribution,float** centroids
 
     }
 
+    // area de multithread  !!!!!! ???
+
     //No cluster B é feita o somatório dos pontos(x,y) no centroid que representa esse cluster, sendo B um cluster
     for(int i = 0; i < N*2; i+=2){
         int cluster = (*cluster_atribution)[k];
@@ -145,6 +162,8 @@ int calculate_centroid(float** pontos,int** cluster_atribution,float** centroids
         (*centroids)[cluster*4+1] += (*pontos)[i+1];
         k++;
     }
+    // area de multithread  !!!!!! ???
+
     k=0;
     
     //Divisão dos valores dos centroids pelo tamanho do seu respetivo cluster, para obter o novo centroid do cluster
