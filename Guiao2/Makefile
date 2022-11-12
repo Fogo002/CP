@@ -3,6 +3,8 @@ BIN = bin/
 SRC = src/
 INCLUDES = include/
 EXEC = k_means
+CP_CLUSTERS = 4
+THREADS = 2
 CFLAGS = -O3 -g -fno-omit-frame-pointer -Wall -funroll-loops -ftree-vectorize -msse4 
 .DEFAULT_GOAL = k_means
 
@@ -15,8 +17,8 @@ $(BIN)utils.o: $(SRC)utils.c $(INCLUDES)utils.h
 clean:
 	rm -r bin/*
 
-run:
-	./$(BIN)$(EXEC)
+runseq:
+	./$(BIN)$(EXEC) 10000000 $(CP_CLUSTERS)
 
-time:
-	time ./$(BIN)$(EXEC)
+runpar:
+	./$(BIN)$(EXEC) 10000000 $(CP_CLUSTERS) $(THREADS)
