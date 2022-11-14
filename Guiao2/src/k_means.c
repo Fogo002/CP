@@ -117,8 +117,6 @@ int calculate_centroid(){
 
     // area de multithread  (2)
 
-    float *centroid_sum = malloc(K*2*sizeof(float));
-
     #pragma omp parallel num_threads(T)
     {
         #pragma omp for reduction(+:centroids[:K*4])
