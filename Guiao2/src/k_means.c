@@ -133,8 +133,10 @@ int calculate_centroid(){
     
     //Divisão dos valores dos centroids pelo tamanho do seu respetivo cluster, para obter o novo centroid do cluster
     for(int i = 0; i < K*4; i+=4){
-        centroids[i] = centroids[i]/cluster_size[k];
-        centroids[i+1] = centroids[i+1]/cluster_size[k];
+        if (cluster_size[k]>0){
+            centroids[i] = centroids[i]/cluster_size[k];
+            centroids[i+1] = centroids[i+1]/cluster_size[k];
+        }
         
         //Verificação se os valores foram alterados para continuar o algoritmo
         if((centroids[i] != centroids[i+2]) || (centroids[i+1] !=centroids[i+3])) end = 0;
@@ -157,7 +159,7 @@ void k_means(){
     }
     printf("N = %d, K = %d\n",N,K);
     for(int i = 0; i < K; i++) {
-        printf("Center: (%0.3f, %0.3f) : Size: %d\n",centroids[i],centroids[i],cluster_size[i]); 
+        printf("Center: (%0.3f, %0.3f) : Size: %d\n",centroids[i*4],centroids[i*4+1],cluster_size[i]); 
     }
     printf("Iterations: %d\n",iteracoes);
 }
