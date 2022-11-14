@@ -121,16 +121,12 @@ int calculate_centroid(){
 
     #pragma omp parallel num_threads(T)
     {
-        #pragma omp for reduction(+:centroid_sum[:K*2])
+        #pragma omp for reduction(+:centroids[:K*4])
         for(int i = 0; i < N; i++){
             int cluster = cluster_atribution[i];
-            centroid_sum[cluster*2] += pontos[i*2];
-            centroid_sum[cluster*2+1] += pontos[i*2+1];
+            centroids[cluster*4] += pontos[i*2];
+            centroids[cluster*4+1] += pontos[i*2+1];
         }
-    }
-    for(int i = 0; i < K; i++){
-        centroids[i*4] = centroid_sum[i*2];
-        centroids[i*4+1] = centroid_sum[i*2+1];
     }
     
     // area de multithread  (2)
