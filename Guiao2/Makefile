@@ -5,7 +5,7 @@ INCLUDES = include/
 EXEC = k_means
 CP_CLUSTERS = 4
 THREADS = 2
-CFLAGS = -O3 -g -fno-omit-frame-pointer -Wall -funroll-loops -ftree-vectorize -msse4 
+CFLAGS = -O3 -fopenmp -g -fno-omit-frame-pointer -Wall -funroll-loops -ftree-vectorize -msse4 
 .DEFAULT_GOAL = k_means
 
 k_means: $(SRC)k_means.c $(BIN)utils.o
