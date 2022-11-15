@@ -3,8 +3,7 @@ BIN = bin/
 SRC = src/
 INCLUDES = include/
 EXEC = k_means
-CP_CLUSTERS = 4
-THREADS = 2
+THREADS = 38
 CFLAGS = -O3 -fopenmp -g -fno-omit-frame-pointer -Wall -funroll-loops -ftree-vectorize -msse4 
 .DEFAULT_GOAL = k_means
 
