@@ -33,7 +33,7 @@ void cluster_distrib() {
     
     #pragma omp parallel num_threads(T) private(cluster_atual,min_dist,clust,tmp,x1,x2,y1,y2)
     {
-        # pragma omp for
+        # pragma omp for reduction(+:cluster_size[:K])
         for(int i = 0; i < N; i++) {
             cluster_atual=0;
             min_dist = 2;
@@ -55,7 +55,7 @@ void cluster_distrib() {
             }
 
             cluster_atribution[i] = cluster_atual;
-            #pragma omp atomic
+            
             cluster_size[cluster_atual]++;
         }
     }
