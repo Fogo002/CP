@@ -1,6 +1,6 @@
 #include "../include/k_means.h"
 
-#define N 10000000
+#define N 16
 #define K 4
 
 
@@ -193,7 +193,7 @@ void k_means(float** pontos,int** cluster_atribution,float** centroids,int** clu
     }
     printf("N = %d, K = %d\n",N,K);
     for(int i = 0; i < K; i++) {
-        printf("Center: (%0.3f, %0.3f) : Size: %d\n",(*centroids)[i],(*centroids)[i],(*cluster_size)[i]); 
+        printf("Center: (%0.3f, %0.3f) : Size: %d\n",(*centroids)[i],(*centroids)[i+1],(*cluster_size)[i]); 
     }
     printf("Iterations: %d\n",iteracoes);
 }

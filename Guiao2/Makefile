@@ -3,7 +3,7 @@ BIN = bin/
 SRC = src/
 INCLUDES = include/
 EXEC = k_means
-THREADS = 38
+THREADS = 1
 CFLAGS = -O3 -fopenmp -g -fno-omit-frame-pointer -Wall -funroll-loops -ftree-vectorize -msse4 
 .DEFAULT_GOAL = k_means
 
@@ -17,7 +17,7 @@ clean:
 	rm -r bin/*
 
 runseq:
-	./$(BIN)$(EXEC) 10000000 $(CP_CLUSTERS)
+	./$(BIN)$(EXEC) 1048576 $(CP_CLUSTERS)
 
 runpar:
 	./$(BIN)$(EXEC) 10000000 $(CP_CLUSTERS) $(THREADS)
