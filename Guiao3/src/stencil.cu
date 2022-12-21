@@ -22,7 +22,7 @@ int iteracoes = -1;
 //Distribui os pontos pelos diferentes clusters tendo em conta qual o centroids mais próximo
 __global__  void cluster_distrib(int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution) {        
     int id = blockIdx.x * blockDim.x + threadIdx.x;
-    int lid = threadIdx.x;
+    //int lid = threadIdx.x;
 
     //__shared__ float temp[NUM_THREADS_PER_BLOCK*2];
     //temp[lid*2] = pontos[id];
@@ -51,6 +51,80 @@ __global__  void cluster_distrib(int*q_cluster_size,float*q_centroids,float*q_po
         clust++;
     }
     q_cluster_atribution[id] = cluster_atual;
+}
+
+__global__  void calculate_centroid_aux(int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    int lid = threadIdx.x;
+
+    if (id >= N) return;
+
+    //put the datapoints and corresponding cluster assignments in shared memory so that they can be summed by thread 0 later
+	__shared__ float s_datapoints_x[NUM_THREADS_PER_BLOCK];
+	s_datapoints_x[lid]= q_pontos[id*2];
+    __shared__ float s_datapoints_y[NUM_THREADS_PER_BLOCK];
+	s_datapoints_y[lid]= q_pontos[id*2+1];
+
+	__shared__ int s_clust_assn[NUM_THREADS_PER_BLOCK];
+	s_clust_assn[lid] = q_cluster_atribution[id];
+
+	__syncthreads();
+
+	//it is the thread with idx 0 (in each block) that sums up all the values within the shared array for the block it is in
+	if(lid==0)
+	{
+		float b_clust_datapoint_sums_x[K]={0};
+        float b_clust_datapoint_sums_y[K]={0};
+		int b_clust_sizes[K]={0};
+
+		for(int j=0; j< blockDim.x; ++j)
+		{
+			int clust_id = s_clust_assn[j];
+			b_clust_datapoint_sums_x[clust_id]+=s_datapoints_x[j];
+            b_clust_datapoint_sums_y[clust_id] += s_datapoints_y[j];
+			b_clust_sizes[clust_id]+=1;
+		}
+
+		//Now we add the sums to the global centroids and add the counts to the global counts.
+		for(int z=0; z < K; ++z)
+		{
+			atomicAdd(&q_centroids[z*4],b_clust_datapoint_sums_x[z]);
+            atomicAdd(&q_centroids[z*4+1],b_clust_datapoint_sums_y[z]);
+			atomicAdd(&q_cluster_size[z],b_clust_sizes[z]);
+		}
+	}
+
+	__syncthreads();
+}
+
+//Calcula os novos valores de centroid de cada cluster
+int calculate_centroid(){
+    int end = 1;
+
+    for(int i = 0; i < K; i++){
+        centroids[i*4+2] = centroids[i*4];
+        centroids[i*4+3] = centroids[i*4+1];
+        centroids[i*4] = 0.0;
+        centroids[i*4+1] = 0.0;
+        cluster_size[i] = 0;
+    }
+
+    cudaMemcpy(d_centroids, centroids, K*4*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_cluster_size, cluster_size, K*sizeof(int), cudaMemcpyHostToDevice);
+    calculate_centroid_aux<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
+    cudaMemcpy(centroids, d_centroids, K*4*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(cluster_size, d_cluster_size, K*sizeof(int), cudaMemcpyDeviceToHost);
+    int k = 0;
+    //Divisão dos valores dos centroids pelo tamanho do seu respetivo cluster, para obter o novo centroid do cluster
+    for(int i = 0; i < K*4; i+=4){
+        if (cluster_size[k]>0){
+            centroids[i] = centroids[i]/cluster_size[k];
+            centroids[i+1] = centroids[i+1]/cluster_size[k];
+        }
+        if((centroids[i] != centroids[i+2]) || (centroids[i+1] !=centroids[i+3])) end = 0;
+        k++;
+    }
+    return end;
 }
 
 //Inicializa os diferentes arrays
@@ -85,41 +159,6 @@ void inicializa() {
     cluster_distrib<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
 
     cudaMemcpy(cluster_atribution,d_cluster_atribution,N*sizeof(int),cudaMemcpyDeviceToHost);
-}
-
-//Calcula os novos valores de centroid de cada cluster
-int calculate_centroid(){
-    int end = 1;
-    int k = -1;
-
-    for(int i = 0; i < K*4; i+=4){
-        centroids[i+2] = centroids[i];
-        centroids[i+3] = centroids[i+1];
-        centroids[i] = 0.0;
-        centroids[i+1] = 0.0;
-
-    }
-    for(int i = 0; i < N; i++){
-        int cluster = cluster_atribution[i];
-        centroids[cluster*4] += pontos[i*2];
-        centroids[cluster*4+1] += pontos[i*2+1];
-        cluster_size[cluster]++;
-    }
-    k=0;
-    
-    //Divisão dos valores dos centroids pelo tamanho do seu respetivo cluster, para obter o novo centroid do cluster
-    for(int i = 0; i < K*4; i+=4){
-        if (cluster_size[k]>0){
-            centroids[i] = centroids[i]/cluster_size[k];
-            centroids[i+1] = centroids[i+1]/cluster_size[k];
-        }
-        if((centroids[i] != centroids[i+2]) || (centroids[i+1] !=centroids[i+3])) end = 0;
-        if(end == 0 && iteracoes+1 <20){
-            cluster_size[k] = 0;
-        }
-        k++;   
-    }
-    return end;
 }
 
 //Executa o algoritmo K-means, tendo em conta que as variáveis estejam inicializadas
