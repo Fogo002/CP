@@ -60,40 +60,38 @@ __global__  void calculate_centroid_aux(int*q_cluster_size,float*q_centroids,flo
     if (id >= N) return;
 
     //put the datapoints and corresponding cluster assignments in shared memory so that they can be summed by thread 0 later
-	__shared__ float s_datapoints_x[NUM_THREADS_PER_BLOCK];
-	s_datapoints_x[lid]= q_pontos[id*2];
-    __shared__ float s_datapoints_y[NUM_THREADS_PER_BLOCK];
-	s_datapoints_y[lid]= q_pontos[id*2+1];
-
-	__shared__ int s_clust_assn[NUM_THREADS_PER_BLOCK];
-	s_clust_assn[lid] = q_cluster_atribution[id];
+	__shared__ float block_pontos_x[NUM_THREADS_PER_BLOCK];
+	block_pontos_x[lid]= q_pontos[id*2];
+    __shared__ float block_pontos_y[NUM_THREADS_PER_BLOCK];
+	block_pontos_y[lid]= q_pontos[id*2+1];
+	__shared__ int block_cluster_atribution[NUM_THREADS_PER_BLOCK];
+	block_cluster_atribution[lid] = q_cluster_atribution[id];
 
 	__syncthreads();
 
 	//it is the thread with idx 0 (in each block) that sums up all the values within the shared array for the block it is in
 	if(lid==0)
 	{
-		float b_clust_datapoint_sums_x[K]={0};
-        float b_clust_datapoint_sums_y[K]={0};
-		int b_clust_sizes[K]={0};
+		float block_sum_x[K]={0};
+        float block_sum_y[K]={0};
+		int block_clust_size[K]={0};
 
 		for(int j=0; j< blockDim.x; ++j)
 		{
-			int clust_id = s_clust_assn[j];
-			b_clust_datapoint_sums_x[clust_id]+=s_datapoints_x[j];
-            b_clust_datapoint_sums_y[clust_id] += s_datapoints_y[j];
-			b_clust_sizes[clust_id]+=1;
+			int cluster_id = block_cluster_atribution[j];
+			block_sum_x[cluster_id]+=block_pontos_x[j];
+            block_sum_y[cluster_id] += block_pontos_y[j];
+			block_clust_size[cluster_id]+=1;
 		}
 
 		//Now we add the sums to the global centroids and add the counts to the global counts.
 		for(int z=0; z < K; ++z)
 		{
-			atomicAdd(&q_centroids[z*4],b_clust_datapoint_sums_x[z]);
-            atomicAdd(&q_centroids[z*4+1],b_clust_datapoint_sums_y[z]);
-			atomicAdd(&q_cluster_size[z],b_clust_sizes[z]);
+			atomicAdd(&q_centroids[z*4],block_sum_x[z]);
+            atomicAdd(&q_centroids[z*4+1],block_sum_y[z]);
+			atomicAdd(&q_cluster_size[z],block_clust_size[z]);
 		}
 	}
-
 	__syncthreads();
 }
 
