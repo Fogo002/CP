@@ -17,6 +17,7 @@ float* d_pontos;
 int* d_cluster_atribution; 
 int* d_cluster_size;       
 float* d_centroids; 
+int* d_end;
 int iteracoes = -1;
 
 //Distribui os pontos pelos diferentes clusters tendo em conta qual o centroids mais próximo
@@ -53,11 +54,19 @@ __global__  void cluster_distrib(int*q_cluster_size,float*q_centroids,float*q_po
     q_cluster_atribution[id] = cluster_atual;
 }
 
-__global__  void calculate_centroid_aux(int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
+__global__  void calculate_centroid(int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     int lid = threadIdx.x;
 
-    if (id >= N) return;
+    //if (id >= N) return;
+
+    if(id<K){
+        q_centroids[id*4+2] = q_centroids[id*4];
+        q_centroids[id*4+3] = q_centroids[id*4+1];
+        q_centroids[id*4] = 0.0;
+        q_centroids[id*4+1] = 0.0;
+        q_cluster_size[id] = 0;
+    }
 
     //put the datapoints and corresponding cluster assignments in shared memory so that they can be summed by thread 0 later
 	__shared__ float block_pontos_x[NUM_THREADS_PER_BLOCK];
@@ -70,59 +79,47 @@ __global__  void calculate_centroid_aux(int*q_cluster_size,float*q_centroids,flo
 	__syncthreads();
 
 	//it is the thread with idx 0 (in each block) that sums up all the values within the shared array for the block it is in
-	if(lid==0)
-	{
+	if(lid==0){
 		float block_sum_x[K]={0};
         float block_sum_y[K]={0};
 		int block_clust_size[K]={0};
 
-		for(int j=0; j< blockDim.x; ++j)
-		{
+		for(int j=0; j< blockDim.x; ++j){
 			int cluster_id = block_cluster_atribution[j];
 			block_sum_x[cluster_id]+=block_pontos_x[j];
             block_sum_y[cluster_id] += block_pontos_y[j];
 			block_clust_size[cluster_id]+=1;
 		}
-
 		//Now we add the sums to the global centroids and add the counts to the global counts.
-		for(int z=0; z < K; ++z)
-		{
+		for(int z=0; z < K; ++z){
 			atomicAdd(&q_centroids[z*4],block_sum_x[z]);
             atomicAdd(&q_centroids[z*4+1],block_sum_y[z]);
 			atomicAdd(&q_cluster_size[z],block_clust_size[z]);
 		}
 	}
-	__syncthreads();
 }
 
-//Calcula os novos valores de centroid de cada cluster
-int calculate_centroid(){
-    int end = 1;
+__global__  void calculate_centroid_2(int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    //int lid = threadIdx.x;
 
-    for(int i = 0; i < K; i++){
-        centroids[i*4+2] = centroids[i*4];
-        centroids[i*4+3] = centroids[i*4+1];
-        centroids[i*4] = 0.0;
-        centroids[i*4+1] = 0.0;
-        cluster_size[i] = 0;
+    if(id<K){
+        q_centroids[id*4] = q_centroids[id*4]/q_cluster_size[id];
+        q_centroids[id*4+1] = q_centroids[id*4+1]/q_cluster_size[id];
     }
+}
 
-    cudaMemcpy(d_centroids, centroids, K*4*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_cluster_size, cluster_size, K*sizeof(int), cudaMemcpyHostToDevice);
-    calculate_centroid_aux<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
-    cudaMemcpy(centroids, d_centroids, K*4*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(cluster_size, d_cluster_size, K*sizeof(int), cudaMemcpyDeviceToHost);
-    int k = 0;
-    //Divisão dos valores dos centroids pelo tamanho do seu respetivo cluster, para obter o novo centroid do cluster
-    for(int i = 0; i < K*4; i+=4){
-        if (cluster_size[k]>0){
-            centroids[i] = centroids[i]/cluster_size[k];
-            centroids[i+1] = centroids[i+1]/cluster_size[k];
-        }
-        if((centroids[i] != centroids[i+2]) || (centroids[i+1] !=centroids[i+3])) end = 0;
-        k++;
+__global__  void calculate_centroid_3(int*d_end,int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    //int lid = threadIdx.x;
+
+    if(id<K){
+        d_end[0] = 1;
+
+        __syncthreads();
+
+        if((q_centroids[id*4] != q_centroids[id*4+2]) || (q_centroids[id*4+1] != q_centroids[id*4+3])) d_end[0] = 0;
     }
-    return end;
 }
 
 //Inicializa os diferentes arrays
@@ -150,13 +147,12 @@ void inicializa() {
     cudaMalloc ((void**) &d_centroids, K*4*sizeof(float));
     cudaMalloc ((void**) &d_cluster_atribution, N*sizeof(int));
     cudaMalloc ((void**) &d_cluster_size, K*sizeof(int));
+    cudaMalloc ((void**) &d_end, sizeof(int));
 
     cudaMemcpy(d_centroids, centroids, K*4*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_pontos, pontos, N*2*sizeof(float), cudaMemcpyHostToDevice);
 
     cluster_distrib<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
-
-    cudaMemcpy(cluster_atribution,d_cluster_atribution,N*sizeof(int),cudaMemcpyDeviceToHost);
 }
 
 //Executa o algoritmo K-means, tendo em conta que as variáveis estejam inicializadas
@@ -165,12 +161,15 @@ void k_means(){
 
     //Ciclo que para quando os centroids não variam
     while(end == 0 && iteracoes <20){
-        end = calculate_centroid();
-        cudaMemcpy(d_centroids, centroids, K*4*sizeof(float), cudaMemcpyHostToDevice);
+        calculate_centroid<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
+        calculate_centroid_2<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
+        calculate_centroid_3<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_end,d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
         cluster_distrib<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
-        cudaMemcpy(cluster_atribution,d_cluster_atribution,N*sizeof(int),cudaMemcpyDeviceToHost);
+        cudaMemcpy(&end, d_end,sizeof(int), cudaMemcpyDeviceToHost);
         iteracoes++;
     }
+    cudaMemcpy(centroids, d_centroids, K*4*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(cluster_size, d_cluster_size, K*sizeof(int), cudaMemcpyDeviceToHost);
     printf("N = %d, K = %d\n",N,K);
     for(int i = 0; i < K; i++) {
         printf("Center: (%0.3f, %0.3f) : Size: %d\n",centroids[i*4],centroids[i*4+1],cluster_size[i]); 
