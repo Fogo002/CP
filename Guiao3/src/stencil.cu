@@ -99,21 +99,14 @@ __global__  void calculate_centroid(int*q_cluster_size,float*q_centroids,float*q
 	}
 }
 
-__global__  void calculate_centroid_2(int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
+__global__  void calculate_centroid_2(int*d_end,int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     //int lid = threadIdx.x;
 
     if(id<K){
         q_centroids[id*4] = q_centroids[id*4]/q_cluster_size[id];
         q_centroids[id*4+1] = q_centroids[id*4+1]/q_cluster_size[id];
-    }
-}
 
-__global__  void calculate_centroid_3(int*d_end,int*q_cluster_size,float*q_centroids,float*q_pontos,int* q_cluster_atribution){
-    int id = blockIdx.x * blockDim.x + threadIdx.x;
-    //int lid = threadIdx.x;
-
-    if(id<K){
         d_end[0] = 1;
 
         __syncthreads();
@@ -162,8 +155,7 @@ void k_means(){
     //Ciclo que para quando os centroids não variam
     while(end == 0 && iteracoes <20){
         calculate_centroid<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
-        calculate_centroid_2<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
-        calculate_centroid_3<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_end,d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
+        calculate_centroid_2<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_end,d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
         cluster_distrib<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
         cudaMemcpy(&end, d_end,sizeof(int), cudaMemcpyDeviceToHost);
         iteracoes++;
