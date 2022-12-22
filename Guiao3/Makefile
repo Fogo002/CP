@@ -10,7 +10,7 @@ BIN_NAME = stencil
 CXX = nvcc
 LD  = nvcc
 
-CXXFLAGS   = -O2 -g -std=c++11 -arch=sm_35 -Wno-deprecated-gpu-targets 
+CXXFLAGS   = -O3 -g -std=c++11 -arch=sm_35 -Wno-deprecated-gpu-targets -rdc=true
 
 SRC_DIR = src
 BIN_DIR = bin
