@@ -24,11 +24,6 @@ int* d_iteracoes;
 __global__  void cluster_distrib(int*d_cluster_size,float*d_centroids,float*d_pontos,int* d_cluster_atribution) {        
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     //int lid = threadIdx.x;
-
-    //__shared__ float temp[NUM_THREADS_PER_BLOCK*2];
-    //temp[lid*2] = pontos[id];
-    //temp[lid*2+1] = pontos[id+1];
-
     int cluster_atual,clust,k_size=K*4;
     float min_dist,tmp;
     float x1,x2,y1,y2;
@@ -53,13 +48,12 @@ __global__  void cluster_distrib(int*d_cluster_size,float*d_centroids,float*d_po
     }
     d_cluster_atribution[id] = cluster_atual;
 }
-
+// Parte 1 : faz as somas todas
 __global__  void calculate_centroid(int*d_cluster_size,float*d_centroids,float*d_pontos,int* d_cluster_atribution){
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     int lid = threadIdx.x;
-
     //if (id >= N) return;
-
+    // init centroids e tamanhos dos clusters
     if(id<K){
         d_centroids[id*4+2] = d_centroids[id*4];
         d_centroids[id*4+3] = d_centroids[id*4+1];
@@ -67,8 +61,7 @@ __global__  void calculate_centroid(int*d_cluster_size,float*d_centroids,float*d
         d_centroids[id*4+1] = 0.0;
         d_cluster_size[id] = 0;
     }
-
-    //put the datapoints and corresponding cluster assignments in shared memory so that they can be summed by thread 0 later
+    // carrega os pontos e atribuicoes para memoria partilhada que serão somados a seguir
 	__shared__ float block_pontos_x[NUM_THREADS_PER_BLOCK];
 	block_pontos_x[lid]= d_pontos[id*2];
     __shared__ float block_pontos_y[NUM_THREADS_PER_BLOCK];
@@ -76,21 +69,22 @@ __global__  void calculate_centroid(int*d_cluster_size,float*d_centroids,float*d
 	__shared__ int block_cluster_atribution[NUM_THREADS_PER_BLOCK];
 	block_cluster_atribution[lid] = d_cluster_atribution[id];
 
+    // sincronizar bloco para garantir que todos os elementos a usar pelo bloco foram carregados
 	__syncthreads();
 
-	//it is the thread with idx 0 (in each block) that sums up all the values within the shared array for the block it is in
+	// cada thread com id = 0 do seu bloco faz primeiro a soma local e depois e depois soma isso no global (reduction-like)
 	if(lid==0){
 		float block_sum_x[K]={0};
         float block_sum_y[K]={0};
 		int block_clust_size[K]={0};
-
+        // soma local (bloco)
 		for(int j=0; j< blockDim.x; ++j){
 			int cluster_id = block_cluster_atribution[j];
 			block_sum_x[cluster_id]+=block_pontos_x[j];
             block_sum_y[cluster_id] += block_pontos_y[j];
 			block_clust_size[cluster_id]+=1;
 		}
-		//Now we add the sums to the global centroids and add the counts to the global counts.
+		// soma global
 		for(int z=0; z < K; ++z){
 			atomicAdd(&d_centroids[z*4],block_sum_x[z]);
             atomicAdd(&d_centroids[z*4+1],block_sum_y[z]);
@@ -99,14 +93,13 @@ __global__  void calculate_centroid(int*d_cluster_size,float*d_centroids,float*d
 	}
 }
 
+// Parte 2 : calcula centroids atuais e verifica condição de saida (separado em 2 funcões para haver sincronização total dos calculos anteriores)
 __global__  void calculate_centroid_2(int*d_end,int*d_cluster_size,float*d_centroids){
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     //int lid = threadIdx.x;
-
     if(id<K){
         d_centroids[id*4] = d_centroids[id*4]/d_cluster_size[id];
         d_centroids[id*4+1] = d_centroids[id*4+1]/d_cluster_size[id];
-
         d_end[0] = 1;
 
         __syncthreads();
@@ -117,10 +110,9 @@ __global__  void calculate_centroid_2(int*d_end,int*d_cluster_size,float*d_centr
 
 __global__ void k_means_gpu(int*d_end,int*d_cluster_size,float*d_centroids,float*d_pontos,int* d_cluster_atribution,int*d_iteracoes){
     int id = blockIdx.x * blockDim.x + threadIdx.x;
-    int iteracoes = -1;
     if(id==0){
+        int iteracoes = -1;
         while(d_end[0] == 0 && iteracoes <20){
-            
             calculate_centroid<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
             calculate_centroid_2<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_end,d_cluster_size,d_centroids);
             cluster_distrib<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_cluster_size,d_centroids,d_pontos,d_cluster_atribution);
@@ -166,20 +158,18 @@ void inicializa() {
 
 //Executa o algoritmo K-means, tendo em conta que as variáveis estejam inicializadas
 void k_means(){
-
     int iteracoes = -1;
-    //Ciclo que para quando os centroids não variam
 
     k_means_gpu<<< NUM_THREADS_PER_BLOCK,NUM_BLOCKS >>> (d_end,d_cluster_size,d_centroids,d_pontos,d_cluster_atribution,d_iteracoes);
    
-    
     cudaMemcpy(centroids, d_centroids, K*4*sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(cluster_size, d_cluster_size, K*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&iteracoes, d_iteracoes,sizeof(int), cudaMemcpyDeviceToHost);
+
     printf("N = %d, K = %d\n",N,K);
     for(int i = 0; i < K; i++) {
         printf("Center: (%0.3f, %0.3f) : Size: %d\n",centroids[i*4],centroids[i*4+1],cluster_size[i]); 
     }
-    cudaMemcpy(&iteracoes, d_iteracoes,sizeof(int), cudaMemcpyDeviceToHost);
     printf("Iterations: %d\n",iteracoes);
 }
 
