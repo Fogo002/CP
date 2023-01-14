@@ -174,7 +174,9 @@ void k_means(){
 }
 
 int main(int argc, char **argv){
+    startKernelTime();
     inicializa();
     k_means();
+    stopKernelTime();
     return 0;
 }
