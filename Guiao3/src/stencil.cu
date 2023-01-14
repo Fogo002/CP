@@ -107,8 +107,10 @@ __global__  void calculate_centroid_2(int*d_end,int*d_cluster_size,float*d_centr
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     //int lid = threadIdx.x;
     if(id<K){
-        d_centroids[id*4] = d_centroids[id*4]/d_cluster_size[id];
-        d_centroids[id*4+1] = d_centroids[id*4+1]/d_cluster_size[id];
+        if(d_cluster_size[id]>0){
+            d_centroids[id*4] = d_centroids[id*4]/d_cluster_size[id];
+            d_centroids[id*4+1] = d_centroids[id*4+1]/d_cluster_size[id];
+        }
         d_end[0] = 1;
 
         __syncthreads();
