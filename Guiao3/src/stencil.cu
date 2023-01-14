@@ -31,16 +31,11 @@ __global__  void cluster_distrib(int*d_cluster_size,float*d_centroids,float*d_po
     __shared__ float block_centroids[K*4];
     if(lid<k_size){
     // carrega os pontos e atribuicoes para memoria partilhada que serão somados a seguir
-        
         block_centroids[lid]= d_centroids[lid];
         block_centroids[lid]= d_centroids[lid];
-
     }
-
     // sincronizar bloco para garantir que todos os elementos a usar pelo bloco foram carregados
 	__syncthreads();
-
-
 
     cluster_atual=0;
     min_dist = 2;
@@ -151,7 +146,7 @@ void inicializa() {
         pontos[i] = (float) rand() / RAND_MAX;
         pontos[i+1] = (float) rand() / RAND_MAX;
     }
-    for(int i = 0; i < K*2*2; i+=2) {
+    for(int i = 0; i < K*4; i+=4) {
         centroids[i+i] = pontos[i];     //Centroid ponto x
         centroids[i+i+1] = pontos[i+1]; //Centroid ponto y
         cluster_size[k] = 0;
