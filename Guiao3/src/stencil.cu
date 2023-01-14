@@ -23,10 +23,24 @@ int* d_iteracoes;
 //Distribui os pontos pelos diferentes clusters tendo em conta qual o centroids mais próximo
 __global__  void cluster_distrib(int*d_cluster_size,float*d_centroids,float*d_pontos,int* d_cluster_atribution) {        
     int id = blockIdx.x * blockDim.x + threadIdx.x;
-    //int lid = threadIdx.x;
+    int lid = threadIdx.x;
+
     int cluster_atual,clust,k_size=K*4;
     float min_dist,tmp;
     float x1,x2,y1,y2;
+    __shared__ float block_centroids[K*4];
+    if(lid<k_size){
+    // carrega os pontos e atribuicoes para memoria partilhada que serão somados a seguir
+        
+        block_centroids[lid]= d_centroids[lid];
+        block_centroids[lid]= d_centroids[lid];
+
+    }
+
+    // sincronizar bloco para garantir que todos os elementos a usar pelo bloco foram carregados
+	__syncthreads();
+
+
 
     cluster_atual=0;
     min_dist = 2;
@@ -35,8 +49,8 @@ __global__  void cluster_distrib(int*d_cluster_size,float*d_centroids,float*d_po
     y2 = d_pontos[id*2+1];
 
     for(int j = 0; j < k_size ; j+=4){
-        x1 = d_centroids[j];
-        y1 = d_centroids[j+1];
+        x1 = block_centroids[j];
+        y1 = block_centroids[j+1];
                 
         tmp = (x2 - x1)*(x2 - x1)+ (y2 - y1)*(y2 - y1);
 
